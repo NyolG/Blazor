@@ -1,0 +1,92 @@
+﻿@page "/usuarios"
+
+@using CRUD.Compartir;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using BlazorABC.Client.Servicios;
+@using Microsoft.AspNetCore.Components;
+
+@inject SweetAlertService sqal;
+@inject IUsuarioServicio usuariosService;
+
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+
+@attribute [Authorize]
+
+<h3>Usuarios</h3>
+<a class="btn btn-success btn-sm mb-3" href="usuario">Nuevo usuario</a>
+<table class="table">
+    <thead>
+        <tr>
+            <th>id</th>
+            <th>usuario</th>
+            <th>password</th>
+        </tr>
+    </thead>
+    <tbody>
+        
+        @if(listausuarios==null)
+        {
+            <tr>
+                <td colspan="3" align="center"></td>
+                <!--img style="width:50px;" /-->
+
+            </tr>
+        }
+        else
+        {
+            @foreach(var item in listausuarios)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Username</td>
+                    <td>@item.Pass</td>
+                    <td>
+                        <a class=" btn btn-primary btn-sm" href="usuario/@item.Id">
+                        <i class="oi oi-pencil"></i>
+                        </a>
+                        <button type="button" class="btn btn-danger btn-sm ms-2" @onclick="(() => Eliminiar(item.Id))">
+                        <i class="oi oi-trash"></i>
+                        </button>
+                        
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+
+
+
+@code {
+    List<Clase1>? listausuarios = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        listausuarios = await usuariosService.lista();
+
+    }
+
+    private async Task Eliminiar(int id)
+    {
+        var resultado = await sqal.FireAsync(new SweetAlertOptions
+        {
+            Title = "Eliminar usuario?",
+            Text="Deseas eleminiar el usuario?",
+            Icon=SweetAlertIcon.Question,
+            ShowCancelButton= true
+        });
+
+        if (resultado.IsConfirmed)
+        {
+
+          var eliminado = await usuariosService.borrar(id);
+            if (eliminado)
+            {
+                listausuarios = listausuarios!.FindAll(e => e.Id != id);
+            }
+            
+        }
+
+    }
+}

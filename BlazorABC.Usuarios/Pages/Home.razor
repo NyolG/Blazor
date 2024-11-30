@@ -1,0 +1,27 @@
+﻿@page "/index"
+
+@inject AuthenticationStateProvider autenticacionProvider
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Components.Authorization;
+@using BlazorABC.Client.Extensiones
+@using CRUD.Compartir;
+@using System.Security.Claims;
+
+@attribute [Authorize]
+
+
+<PageTitle>Home</PageTitle>
+
+<h1>Welcome!</h1>
+
+<AuthorizeView>
+    <Authorized>
+       @{
+          
+            var x = context.User.Claims.Where(c => c.Type.Equals("usname")).Select(c => c.Value).FirstOrDefault().ToString();
+            var id = context.User.Claims.Where(c => c.Type.Equals("usid")).Select(c => c.Value).FirstOrDefault().ToString();
+        }
+        <h2> @id - @x</h2>
+    </Authorized>
+
+</AuthorizeView>

@@ -1,0 +1,88 @@
+﻿@page "/"
+@layout LoginLayout
+
+@inject HttpClient httpClient
+@using BlazorABC.Client.Extensiones
+@using CRUD.Compartir
+@using Microsoft.AspNetCore.Components.Authorization
+@inject AuthenticationStateProvider autenticacionProvider
+@inject NavigationManager navManager
+@inject IUsuarioServicio usuariosService;
+
+
+@using CurrieTechnologies.Razor.SweetAlert2;
+@inject SweetAlertService sqal;
+
+<div class="row mt-5">
+
+    <div class="col-lg-4 offset-lg-4 border">
+
+        <div class="mb-3 text-center">
+            <h3>LOGIN</h3>
+        </div>
+
+        <div class="mb-3">
+            <label>Usuario</label>
+            <input @bind="login.usuario" id="us" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Contraseña</label>
+            <input @bind="login.password" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <button @onclick="IniciarSesion" class="btn btn-primary">Login</button>
+            <button @onclick="Registro" class="btn btn-primary">Registrar</button>
+        </div>
+
+    </div>
+
+</div>
+
+@code {
+    private CRUD.Compartir.Login login = new CRUD.Compartir.Login();
+
+    private async Task IniciarSesion()
+    {
+
+        var LoginResponse = await httpClient.GetFromJsonAsync<Responses<Clase1>>($"api/usuarios/buscar/{login.usuario}");
+
+        if(LoginResponse!=null)
+        {
+
+            if (login.password == LoginResponse.Valores.Pass)
+            {
+                var ss = new Ssesion();
+                ss.id = LoginResponse.Valores.Id;
+                ss.usuario = LoginResponse.Valores.Username;
+
+                var autenticationExt = (autenticacion)autenticacionProvider;
+                await autenticationExt.ActualizarEstadoAutenticacion(ss);
+
+                navManager.NavigateTo("/Index");
+            }
+            else
+            {
+                await sqal.FireAsync(new SweetAlertOptions
+                    {
+                        Title = "Error",
+                        Text = "Contrasena incorrecta",
+
+                    });
+            }
+
+        }
+        else
+        {
+
+        }
+    }
+
+    private async Task Registro()
+    {
+        navManager.NavigateTo("/registrar",true);
+            
+    }
+
+}

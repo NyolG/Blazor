@@ -1,0 +1,210 @@
+﻿@page "/Superdigito"
+
+
+@using BlazorABC.Client.Extensiones;
+@using System.Security.Claims;
+@using Microsoft.AspNetCore.Authorization;
+@using CRUD.Compartir;
+@using CurrieTechnologies.Razor.SweetAlert2;
+@using BlazorABC.Client.Servicios;
+@using Microsoft.AspNetCore.Components;
+@inject AuthenticationStateProvider autenticacionProvider;
+@inject SweetAlertService sqal;
+@inject IHistorialServicio historialService;
+@inject IUsuarioServicio usuarioService;
+@using Microsoft.AspNetCore.Components.Authorization;
+@inject HttpClient httpClient
+@inject NavigationManager navManager
+
+@attribute [Authorize]
+
+<h3>Super Digito</h3>
+<div class="row mt-5">
+
+    <div class="col-lg-4 offset-lg-4 border">
+        
+        <div class="mb-3">
+            <label>Numero</label>
+            <input @bind="nreg.Number" id="us" class="form-control" />
+        </div>
+
+        <div class="mb-3">
+            <label>Resultado</label>
+            <input @bind-value="nreg.NumResp"  class="form-control" disabled/>
+        </div>
+
+        <button @onclick="guarda" class="btn btn-primary">Calcular</button>
+  
+    </div>
+
+</div>
+
+    
+
+<br>
+<br>
+<h3>Historial</h3>
+<table class="table">
+    <thead>
+        <tr>
+            <th>id</th>
+            <th>Numero</th>
+            <th>Resultado</th>
+            <th>Fecha</th>
+        </tr>
+    </thead>
+    <tbody>
+
+        @if (listausuarios == null)
+        {
+            <tr>
+                <td colspan="3" align="center"></td>
+                <!--img style="width:50px;" /-->
+
+            </tr>
+        }
+        else
+        {
+            @foreach (var item in listausuarios)
+            {
+                <tr>
+                    <td>@item.Id</td>
+                    <td>@item.Number</td>
+                    <td>@item.NumResp</td>
+                    <td>@item.Fecha</td>
+                    <td>
+                        <button type="button" class="btn btn-danger btn-sm ms-2" @onclick="(() => Eliminiar(item.Id))">
+                            <i class="oi oi-trash">X</i>
+                        </button>
+
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<AuthorizeView>
+    <Authorized>
+        @{
+            var id = context.User.Claims.Where(c => c.Type.Equals("usid")).Select(c => c.Value).FirstOrDefault().ToString();
+            dato = id;
+        }
+    </Authorized>
+
+</AuthorizeView>
+
+
+@code {
+    public static string dato;
+    private CRUD.Compartir.HistorialClass nreg = new CRUD.Compartir.HistorialClass();
+    List<HistorialClass>? listausuarios = null;
+
+    protected  override async Task OnInitializedAsync()
+    {
+
+        int idus = Convert.ToInt32(dato);
+        listausuarios = await historialService.lista(idus);
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+
+        int idus = Convert.ToInt32(dato);
+        listausuarios = await historialService.lista(idus);
+    }
+
+
+    private async Task Eliminiar(int id)
+    {
+        var resultado = await sqal.FireAsync(new SweetAlertOptions
+            {
+                Title = "Eliminar registro?",
+                Text = "Deseas eleminiar el registro?",
+                Icon = SweetAlertIcon.Question,
+                ShowCancelButton = true
+            });
+
+        if (resultado.IsConfirmed)
+        {
+
+            var eliminado = await historialService.borrar(id);
+            if (eliminado)
+            {
+                listausuarios = listausuarios!.FindAll(e => e.Id != id);
+            }
+
+        }
+
+    }
+
+    private async Task guarda()
+    {
+        //var LoginResponse = await httpClient.GetFromJsonAsync<Responses<HistorialClass>>($"api/Historial/buscar/{nreg.Number}");
+        if(listausuarios!.FindAll(e => e.Number == nreg.Number ).Count>0)
+        {
+            await sqal.FireAsync(new SweetAlertOptions
+                {
+                    Title = "Ya existente",
+                    Text = "Valor ya ha sido calculado con anterioridad!",
+
+                });
+            List<HistorialClass>? listausuariosaux = listausuarios!.FindAll(e => e.Number == nreg.Number);
+            @foreach (var item in listausuariosaux)
+            {
+                nreg.Id = item.Id;
+                nreg.NumResp = item.NumResp;
+                nreg.IdUser = item.IdUser;
+                nreg.Fecha = DateTime.Now;
+            }
+            var r = await historialService.editar(nreg);
+
+        }
+        else
+        {
+            HistorialClass nnn = new HistorialClass();
+            nnn.IdUser = Convert.ToInt32( dato);
+            nnn.Number = nreg.Number;
+            nnn.Fecha = DateTime.Now;
+
+            string me = calcular(nreg.Number.ToString());
+
+            nnn.NumResp = Convert.ToInt32(me);
+            nreg.NumResp = Convert.ToInt32(me);
+
+            var r = await historialService.guardar(nnn);
+            if(r!=0)
+            {
+                navManager.NavigateTo(navManager.Uri, true);
+            }
+            
+        }
+
+    }
+
+    private string calcular(string n)
+    {
+        int suma =0;
+
+        for (int i=0;i< n.Length;i++)
+        {
+            suma += int.Parse(n[i].ToString());
+        }
+
+        while(suma>=10)
+        {
+            int nsuma = 0;
+            string da = suma.ToString();
+            for(int i=0; i< da.Length;i++)
+            {
+                nsuma += int.Parse(da[i].ToString());
+            }
+            suma = nsuma;
+        }
+
+            return suma.ToString();
+        
+
+    }
+
+
+}
